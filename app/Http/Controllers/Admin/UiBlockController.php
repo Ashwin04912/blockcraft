@@ -41,16 +41,12 @@ class UiBlockController extends Controller
         $data['site_id']   = $site->id;
         $data['is_active'] = $request->boolean('is_active', true);
 
-        
-
         $block = DB::transaction(function () use ($data, $site) {
             $data['display_order'] = $data['display_order']
                 ?? (($site->uiBlocks()->lockForUpdate()->max('display_order') ?? -1) + 1);
 
             return UiBlock::create($data);
         });
-
-        // dd($data['config']);
 
         $this->forgetBlocksCache($site);
 
@@ -62,13 +58,15 @@ class UiBlockController extends Controller
             ->with('success', 'Block created successfully.');
     }
 
-    public function edit(Site $site, UiBlock $uiBlock)
-    {
-        $this->authorize('update', $site);
-        abort_if($uiBlock->site_id !== $site->id, 404);
+    // public function edit(Site $site, UiBlock $uiBlock)
+    // {
+    //     dd("hwllo edit block reached");
 
-        return view('admin.ui_blocks.edit', compact('site', 'uiBlock'));
-    }
+    //     $this->authorize('update', $site);
+    //     abort_if($uiBlock->site_id !== $site->id, 404);
+
+    //     return view('admin.ui_blocks.edit', compact('site', 'uiBlock'));
+    // }
 
     public function update(UpdateUiBlockRequest $request, Site $site, UiBlock $uiBlock)
     {

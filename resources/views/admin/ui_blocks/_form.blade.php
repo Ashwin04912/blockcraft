@@ -59,6 +59,20 @@
 
     <hr class="border-gray-100">
 
+    {{-- Background Style --}}
+    <div>
+        <label for="bg_style" class="block text-sm font-medium text-gray-700 mb-1.5">Background Style</label>
+        <select id="bg_style" name="config[bg_style]"
+                class="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition bg-white">
+            @php $oldBgStyle = old('config.bg_style', $oldConfig['bg_style'] ?? 'light'); @endphp
+            @foreach(['light', 'dark', 'gradient'] as $style)
+                <option value="{{ $style }}" {{ $oldBgStyle === $style ? 'selected' : '' }}>{{ ucfirst($style) }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    <hr class="border-gray-100">
+
     {{-- ===== CONFIG FIELDS ===== --}}
 
     {{-- Banner --}}
@@ -188,16 +202,6 @@
     {{-- Header --}}
     <div id="cfg-header" class="space-y-4 config-section hidden">
         <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Header Config</p>
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">Background Style</label>
-            <select name="config[bg_style]"
-                    class="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition bg-white">
-                @php $oldBgStyle = old('config.bg_style', $oldConfig['bg_style'] ?? 'light'); @endphp
-                @foreach(['light', 'dark', 'gradient'] as $style)
-                    <option value="{{ $style }}" {{ $oldBgStyle === $style ? 'selected' : '' }}>{{ ucfirst($style) }}</option>
-                @endforeach
-            </select>
-        </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Logo Text</label>
             <input type="text" name="config[logo_text]"

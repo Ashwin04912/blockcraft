@@ -39,11 +39,10 @@ trait HasUiBlockConfigRules
                 'config.stats.*.icon'   => ['nullable', 'string', 'max:100'],
             ],
             'header' => [
-                'config.bg_style'                 => ['nullable', 'string', 'in:light,dark,gradient'],
                 'config.logo_text'                => ['nullable', 'string', 'max:255'],
                 'config.logo_url'                 => ['nullable', 'url'],
                 'config.cta_label'                => ['nullable', 'string', 'max:255'],
-                'config.cta_url'                  => ['nullable', 'url'],
+                'config.cta_url'                  => ['nullable', 'string', 'max:2048'],
                 'config.nav_links'                => ['nullable', 'array'],
                 'config.nav_links.*.label'        => ['required_with:config.nav_links', 'string'],
                 'config.nav_links.*.url'          => ['required_with:config.nav_links', 'string'],

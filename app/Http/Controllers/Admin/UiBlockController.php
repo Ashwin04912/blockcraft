@@ -58,15 +58,7 @@ class UiBlockController extends Controller
             ->with('success', 'Block created successfully.');
     }
 
-    // public function edit(Site $site, UiBlock $uiBlock)
-    // {
-    //     dd("hwllo edit block reached");
 
-    //     $this->authorize('update', $site);
-    //     abort_if($uiBlock->site_id !== $site->id, 404);
-
-    //     return view('admin.ui_blocks.edit', compact('site', 'uiBlock'));
-    // }
 
     public function update(UpdateUiBlockRequest $request, Site $site, UiBlock $uiBlock)
     {
@@ -109,6 +101,7 @@ class UiBlockController extends Controller
 
     public function reorder(Request $request, Site $site)
     {
+
         $this->authorize('update', $site);
 
         $request->validate([

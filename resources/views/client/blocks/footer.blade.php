@@ -6,6 +6,10 @@ $links       = $config['links'] ?? [];
 $socialLinks = $config['social_links'] ?? [];
 $size        = $config['size'] ?? 'md';
 
+// Defaults to 'dark' (not 'light' like other blocks) — that's the look
+// this footer has always had; switching the global default would silently
+// change every footer already seeded without bg_style set.
+$bgStyle = $config['bg_style'] ?? 'dark';
 
 // Padding control
 $paddingCss = match($size) {
@@ -14,10 +18,17 @@ $paddingCss = match($size) {
     default => 'py-5',
 };
 
-
+$footerClass = match($bgStyle) {
+    'light'    => 'bg-white text-secondary border-top',
+    'gradient' => 'bg-primary bg-gradient text-white border-top',
+    default    => 'bg-dark text-secondary border-top',
+};
+$brandTextClass = $bgStyle === 'light' ? 'text-dark' : 'text-white';
+$linkClass      = $bgStyle === 'light' ? 'text-secondary' : 'text-secondary';
+$socialBtnClass = $bgStyle === 'light' ? 'btn-outline-secondary' : 'btn-outline-light';
 @endphp
 
-<footer class="bg-dark text-secondary border-top mt-5">
+<footer class="{{ $footerClass }} mt-5">
     <div class="container {{ $paddingCss }}">
 
 
@@ -31,7 +42,7 @@ $paddingCss = match($size) {
                      style="width:48px;height:48px;">
                     <strong>{{ strtoupper(mb_substr($brand, 0, 1)) }}</strong>
                 </div>
-                <h5 class="text-white mb-0 fw-bold">{{ $brand }}</h5>
+                <h5 class="{{ $brandTextClass }} mb-0 fw-bold">{{ $brand }}</h5>
             </div>
 
             @if($tagline)
@@ -45,7 +56,7 @@ $paddingCss = match($size) {
                         <a href="{{ $social['url'] ?? '#' }}"
                            target="_blank"
                            rel="noopener noreferrer"
-                           class="btn btn-outline-light btn-sm me-2 mb-2">
+                           class="btn {{ $socialBtnClass }} btn-sm me-2 mb-2">
                             {{ $social['platform'] ?? '' }}
                         </a>
                     @endforeach
@@ -56,12 +67,12 @@ $paddingCss = match($size) {
         <!-- Quick Links Column -->
         @if(!empty($links))
             <div class="col-md-3">
-                <h6 class="text-white text-uppercase fw-bold mb-3">Quick Links</h6>
+                <h6 class="{{ $brandTextClass }} text-uppercase fw-bold mb-3">Quick Links</h6>
                 <ul class="list-unstyled mb-0">
                     @foreach($links as $link)
                         <li class="mb-2">
                             <a href="{{ $link['url'] ?? '#' }}"
-                               class="text-secondary text-decoration-none">
+                               class="{{ $linkClass }} text-decoration-none">
                                 {{ $link['label'] ?? '' }}
                             </a>
                         </li>

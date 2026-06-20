@@ -7,7 +7,11 @@
     <title>@yield('title', 'BlockCraft')</title>
     @vite(['resources/css/app.scss', 'resources/js/app.js'])
 </head>
-<body class="d-flex min-vh-100 bg-light text-dark">
+@php
+    $isClientPage = request()->routeIs('client.page');
+@endphp
+<body class="d-flex min-vh-100 {{ $isClientPage ? '' : 'bg-light' }} {{ $isClientPage && isset($site) ? $site->background_text_class : 'text-dark' }}"
+      @if($isClientPage && isset($site)) style="background-color: {{ $site->background_color }};" @endif>
 
     @if(!request()->routeIs('client.page'))
     {{-- Sidebar --}}

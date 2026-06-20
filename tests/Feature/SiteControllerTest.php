@@ -142,6 +142,44 @@ class SiteControllerTest extends TestCase
         $this->assertDatabaseHas('sites', ['id' => $site->id]);
     }
 
+    public function test_can_update_background_color_to_palette_value()
+    {
+        $site = Site::create(['name' => 'Mine', 'slug' => 'mine-bg', 'owner_id' => $this->admin->id]);
+
+        $response = $this->actingAs($this->admin)
+            ->patchJson(route('admin.sites.background.update', $site), [
+                'background_color' => '#212529',
+            ]);
+
+        $response->assertStatus(200);
+        $this->assertDatabaseHas('sites', ['id' => $site->id, 'background_color' => '#212529']);
+    }
+
+    public function test_rejects_background_color_outside_palette()
+    {
+        $site = Site::create(['name' => 'Mine', 'slug' => 'mine-bg2', 'owner_id' => $this->admin->id]);
+
+        $response = $this->actingAs($this->admin)
+            ->patchJson(route('admin.sites.background.update', $site), [
+                'background_color' => '#ff00ff',
+            ]);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_cannot_update_background_color_on_another_users_site()
+    {
+        $other = User::factory()->create();
+        $site = Site::create(['name' => 'Not Mine', 'slug' => 'not-mine-bg', 'owner_id' => $other->id]);
+
+        $response = $this->actingAs($this->admin)
+            ->patchJson(route('admin.sites.background.update', $site), [
+                'background_color' => '#000000',
+            ]);
+
+        $response->assertStatus(403);
+    }
+
     public function test_site_routes_are_protected_by_auth()
     {
         $site = Site::create(['name' => 'Protected', 'slug' => 'protected']);

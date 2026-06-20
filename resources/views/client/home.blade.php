@@ -2,7 +2,7 @@
 
 @section('content')
     {{-- Ambient Background for Client Page --}}
-    <div class="position-fixed top-0 start-0 w-100 h-100 pe-none" style="z-index: -10; background-color: #f8fafc;">
+    <div class="position-fixed top-0 start-0 w-100 h-100 pe-none" style="z-index: -10; background-color: '{{ $site->background_color ?? '#f8fafc' }}'">
         <div class="position-absolute rounded-circle mix-blend-multiply" style="top: -20%; left: -10%; width: 70%; height: 70%; background-color: rgba(165, 180, 252, 0.2); filter: blur(120px);"></div>
         <div class="position-absolute rounded-circle mix-blend-multiply" style="top: 10%; right: -10%; width: 60%; height: 60%; background-color: rgba(216, 180, 254, 0.2); filter: blur(120px);"></div>
         <div class="position-absolute rounded-circle mix-blend-multiply" style="bottom: -20%; left: 20%; width: 80%; height: 80%; background-color: rgba(249, 168, 212, 0.2); filter: blur(120px);"></div>

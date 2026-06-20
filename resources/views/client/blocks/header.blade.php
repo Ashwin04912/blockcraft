@@ -31,7 +31,8 @@ $btnClass = match($bgStyle) {
     <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url('/') }}">
         @if($logoUrl)
             <img src="{{ $logoUrl }}" alt="{{ $logoText }}" height="40">
-        @else
+        @endif
+        @if($logoText)
             <span class="fw-bold">{{ $logoText }}</span>
         @endif
     </a>

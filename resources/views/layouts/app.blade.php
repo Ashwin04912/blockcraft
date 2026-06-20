@@ -6,8 +6,12 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'BlockCraft')</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Inter', sans-serif; }
+</style>
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-800 antialiased flex">
+  <body class="min-h-screen bg-gradient-to-b from-slate-100 via-white to-slate-50 text-slate-800 antialiased flex">
 
     @if(!request()->routeIs('client.page'))
     {{-- Sidebar --}}

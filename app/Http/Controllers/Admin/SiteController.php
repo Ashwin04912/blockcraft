@@ -5,16 +5,18 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Site;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class SiteController extends Controller
 {
     /**
-     * Admin dashboard — list all sites as cards.
+     * Admin dashboard — list only sites owned by the current user.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $sites = Site::withCount('uiBlocks')
+        $sites = $request->user()->sites()
+            ->withCount('uiBlocks')
             ->orderBy('name')
             ->get();
 
@@ -22,7 +24,7 @@ class SiteController extends Controller
     }
 
     /**
-     * Store a new site.
+     * Store a new site, owned by the current user.
      */
     public function store(Request $request)
     {
@@ -32,6 +34,8 @@ class SiteController extends Controller
             'slug'        => ['required', 'string', 'max:100', 'unique:sites,slug',
                               'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'],
         ]);
+
+        $validated['owner_id'] = $request->user()->id;
 
         $site = Site::create($validated);
 
@@ -44,7 +48,18 @@ class SiteController extends Controller
      */
     public function destroy(Site $site)
     {
+        $this->authorize('delete', $site);
+
         $name = $site->name;
+        $blockCount = $site->uiBlocks()->count();
+
+        Log::warning('Site deleted (cascades UI blocks)', [
+            'site_id'     => $site->id,
+            'slug'        => $site->slug,
+            'block_count' => $blockCount,
+            'user_id'     => request()->user()?->id,
+        ]);
+
         $site->delete();
 
         return redirect()->route('admin.dashboard')

@@ -353,10 +353,7 @@
 
             {{-- Exact same rendering as the client page --}}
             <div class="block-content" id="block-content-{{ $block->id }}">
-                @includeIf('client.blocks.' . $block->type, [
-                    'config' => $block->config ?? [],
-                    'title'  => $block->title,
-                ])
+                {{ app(\App\Services\BlockRenderer::class)->view($block) }}
             </div>
         </div>
         @endforeach
@@ -390,7 +387,7 @@
         </div>
 
         {{-- Size selector --}}
-        <div class="sb-field">
+        <div class="sb-field" id="sb-size-field">
             <label class="sb-label">Block Size</label>
             <div class="size-btn-group">
                 <button class="size-btn" data-size="sm" onclick="selectSize('sm')">S — Compact</button>
@@ -459,7 +456,7 @@
             </div>
 
             {{-- Size --}}
-            <div class="sb-field">
+            <div class="sb-field" id="add-size-field">
                 <label class="sb-label">Block Size</label>
                 <div class="size-btn-group" id="add-size-group">
                     <button class="size-btn" data-size="sm" onclick="selectAddSize('sm')">S</button>
@@ -496,22 +493,32 @@
             <div class="modal-cfg" id="modal-cfg-card">
                 <p class="text-xs font-bold text-blue-500 uppercase tracking-wider mb-3">Card Config</p>
                 <div class="sb-field">
-                    <label class="sb-label">Card Title <span class="text-red-400">*</span></label>
-                    <input type="text" id="add-card-title" class="sb-input" placeholder="Feature title">
-                </div>
-                <div class="sb-field">
-                    <label class="sb-label">Description <span class="text-red-400">*</span></label>
-                    <textarea id="add-card-desc" class="sb-input" placeholder="Short description…"></textarea>
-                </div>
-                <div class="sb-field">
-                    <label class="sb-label">Image URL <span class="text-gray-400 font-normal normal-case">(optional)</span></label>
-                    <input type="url" id="add-card-image" class="sb-input" placeholder="https://...">
+                    <label class="sb-label">Cards</label>
+                    <div id="add-card-items" class="space-y-4 mb-2">
+                        <div class="dyn-row items-start">
+                            <div class="drag-row-handle mt-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg></div>
+                            <div class="flex-1 space-y-2">
+                                <input type="text" class="sb-input card-title" placeholder="Card Title">
+                                <textarea class="sb-input card-desc" placeholder="Short description…"></textarea>
+                                <input type="url" class="sb-input card-image" placeholder="Image URL (optional)">
+                            </div>
+                            <button type="button" class="remove-row-btn mt-2" onclick="removeRow(this, 'add-card-items', 1)">✕</button>
+                        </div>
+                    </div>
+                    <button type="button" class="add-row-btn" onclick="addCardItemModal()">+ Add card</button>
                 </div>
             </div>
 
             {{-- List config --}}
             <div class="modal-cfg" id="modal-cfg-list">
                 <p class="text-xs font-bold text-amber-500 uppercase tracking-wider mb-3">List Config</p>
+                <div class="sb-field mb-3">
+                    <label class="sb-label">Layout</label>
+                    <select id="add-list-layout" class="sb-input">
+                        <option value="vertical">Vertical (Default)</option>
+                        <option value="horizontal">Horizontal</option>
+                    </select>
+                </div>
                 <label class="sb-label">Items <span class="text-red-400">*</span></label>
                 <div id="add-list-items" class="space-y-2 mb-2">
                     <div class="dyn-row">
@@ -530,6 +537,13 @@
                 <div id="add-stats-items" class="space-y-2 mb-2">
                     <div class="dyn-row">
                         <div class="drag-row-handle"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg></div>
+                        <select class="sb-input stat-icon" style="flex:0.5; padding:8px 6px;">
+                            <option value="">No Icon</option>
+                            <option value="users">Users</option>
+                            <option value="chart">Chart</option>
+                            <option value="star">Star</option>
+                            <option value="clock">Clock</option>
+                        </select>
                         <input type="text" class="sb-input stat-label" placeholder="Label">
                         <input type="text" class="sb-input stat-value" placeholder="Value">
                         <button type="button" class="remove-row-btn" onclick="removeRow(this, 'add-stats-items', 1)">✕</button>
@@ -674,7 +688,7 @@ Sortable.create(document.getElementById('editor-canvas'), {
 });
 
 // Init Add Modal Sorting
-['add-list-items', 'add-stats-items', 'add-header-nav-links', 'add-footer-links', 'add-footer-social'].forEach(id => {
+['add-card-items', 'add-list-items', 'add-stats-items', 'add-header-nav-links', 'add-footer-links', 'add-footer-social'].forEach(id => {
     const el = document.getElementById(id);
     if(el) Sortable.create(el, { handle: '.drag-row-handle', animation: 150 });
 });
@@ -699,6 +713,10 @@ function openEditor(id) {
     document.querySelectorAll('.size-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.size === size);
     });
+    const sizeField = document.getElementById('sb-size-field');
+    if (sizeField) {
+        sizeField.style.display = (block.type === 'header') ? 'none' : 'block';
+    }
 
     // Config fields
     buildConfigFields(block);
@@ -749,19 +767,23 @@ function buildConfigFields(block) {
             break;
 
         case 'card':
+            const cards = c.cards ?? (c.title ? [c] : [{ title:'', description:'', image_url:'' }]);
+            const cardsHtml = cards.map(cd => `
+              <div class="dyn-row items-start">
+                <div class="drag-row-handle mt-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg></div>
+                <div class="flex-1 space-y-2">
+                    <input type="text" class="sb-input card-title" value="${esc(cd.title ?? '')}" placeholder="Card Title">
+                    <textarea class="sb-input card-desc" placeholder="Short description…">${esc(cd.description ?? '')}</textarea>
+                    <input type="url" class="sb-input card-image" value="${esc(cd.image_url ?? '')}" placeholder="Image URL (optional)">
+                </div>
+                <button type="button" class="remove-row-btn mt-2" onclick="removeSbRow(this, 'sb-card-items', 1)">✕</button>
+              </div>`).join('');
             html = `
               <p class="section-label">Card Config</p>
               <div class="sb-field">
-                <label class="sb-label">Card Title</label>
-                <input type="text" id="cfg-card-title" class="sb-input" value="${esc(c.title ?? '')}" placeholder="Feature title">
-              </div>
-              <div class="sb-field">
-                <label class="sb-label">Description</label>
-                <textarea id="cfg-card-desc" class="sb-input" placeholder="Short description…">${esc(c.description ?? '')}</textarea>
-              </div>
-              <div class="sb-field">
-                <label class="sb-label">Image URL <span style="font-weight:400;color:#9ca3af;">(optional)</span></label>
-                <input type="url" id="cfg-card-image" class="sb-input" value="${esc(c.image_url ?? '')}" placeholder="https://...">
+                <label class="sb-label">Cards</label>
+                <div id="sb-card-items" class="space-y-4 mb-2">${cardsHtml}</div>
+                <button type="button" class="add-row-btn" onclick="addSbCardItem()">+ Add card</button>
               </div>`;
             break;
 
@@ -773,8 +795,16 @@ function buildConfigFields(block) {
                 <input type="text" class="sb-input list-item-input" value="${esc(it)}" placeholder="List item…">
                 <button type="button" class="remove-row-btn" onclick="removeSbRow(this, 'sb-list-items', 1)">✕</button>
               </div>`).join('');
+            const listLayout = c.layout ?? 'vertical';
             html = `
               <p class="section-label">List Config</p>
+              <div class="sb-field mb-3">
+                <label class="sb-label">Layout</label>
+                <select id="sb-list-layout" class="sb-input">
+                    <option value="vertical" ${listLayout === 'vertical' ? 'selected' : ''}>Vertical (Default)</option>
+                    <option value="horizontal" ${listLayout === 'horizontal' ? 'selected' : ''}>Horizontal</option>
+                </select>
+              </div>
               <div class="sb-field">
                 <label class="sb-label">Items</label>
                 <div id="sb-list-items" class="space-y-2 mb-2">${itemsHtml}</div>
@@ -783,10 +813,17 @@ function buildConfigFields(block) {
             break;
 
         case 'stats':
-            const stats = c.stats ?? [{ label:'', value:'' }];
+            const stats = c.stats ?? [{ label:'', value:'', icon:'' }];
             const statsHtml = stats.map((s, i) => `
               <div class="dyn-row">
                 <div class="drag-row-handle"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg></div>
+                <select class="sb-input stat-icon" style="flex:0.5; padding:8px 6px;">
+                    <option value="" ${s.icon==='' ? 'selected':''}>No Icon</option>
+                    <option value="users" ${s.icon==='users' ? 'selected':''}>Users</option>
+                    <option value="chart" ${s.icon==='chart' ? 'selected':''}>Chart</option>
+                    <option value="star" ${s.icon==='star' ? 'selected':''}>Star</option>
+                    <option value="clock" ${s.icon==='clock' ? 'selected':''}>Clock</option>
+                </select>
                 <input type="text" class="sb-input stat-label" value="${esc(s.label ?? '')}" placeholder="Label">
                 <input type="text" class="sb-input stat-value" value="${esc(s.value ?? '')}" placeholder="Value">
                 <button type="button" class="remove-row-btn" onclick="removeSbRow(this, 'sb-stats-items', 1)">✕</button>
@@ -891,13 +928,27 @@ function buildConfigFields(block) {
     container.innerHTML = html;
 
     // Init sorting for dynamic arrays in sidebar
-    ['sb-list-items', 'sb-stats-items', 'sb-nav-items', 'sb-footer-links', 'sb-social-links'].forEach(id => {
+    ['sb-card-items', 'sb-list-items', 'sb-stats-items', 'sb-nav-items', 'sb-footer-links', 'sb-social-links'].forEach(id => {
         const el = document.getElementById(id);
         if(el) Sortable.create(el, { handle: '.drag-row-handle', animation: 150 });
     });
 }
 
 // ─── Dynamic row helpers (sidebar) ────────────────────────────
+function addSbCardItem() {
+    const cont = document.getElementById('sb-card-items');
+    const div = document.createElement('div');
+    div.className = 'dyn-row items-start';
+    div.innerHTML = `<div class="drag-row-handle mt-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg></div>
+                     <div class="flex-1 space-y-2">
+                         <input type="text" class="sb-input card-title" placeholder="Card Title">
+                         <textarea class="sb-input card-desc" placeholder="Short description…"></textarea>
+                         <input type="url" class="sb-input card-image" placeholder="Image URL (optional)">
+                     </div>
+                     <button type="button" class="remove-row-btn mt-2" onclick="removeSbRow(this, 'sb-card-items', 1)">✕</button>`;
+    cont.appendChild(div);
+    div.querySelector('input').focus();
+}
 function addSbListItem() {
     const cont = document.getElementById('sb-list-items');
     const div = document.createElement('div');
@@ -913,11 +964,18 @@ function addSbStatItem() {
     const div = document.createElement('div');
     div.className = 'dyn-row';
     div.innerHTML = `<div class="drag-row-handle"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg></div>
+                     <select class="sb-input stat-icon" style="flex:0.5; padding:8px 6px;">
+                         <option value="">No Icon</option>
+                         <option value="users">Users</option>
+                         <option value="chart">Chart</option>
+                         <option value="star">Star</option>
+                         <option value="clock">Clock</option>
+                     </select>
                      <input type="text" class="sb-input stat-label" placeholder="Label">
                      <input type="text" class="sb-input stat-value" placeholder="Value">
                      <button type="button" class="remove-row-btn" onclick="removeSbRow(this,'sb-stats-items',1)">✕</button>`;
     cont.appendChild(div);
-    div.querySelector('input').focus();
+    div.querySelector('select').focus();
 }
 function addSbNavItem() {
     const cont = document.getElementById('sb-nav-items');
@@ -974,17 +1032,22 @@ function collectSidebarData() {
             config.link      = document.getElementById('cfg-link')?.value.trim() ?? '';
             break;
         case 'card':
-            config.title       = document.getElementById('cfg-card-title')?.value.trim() ?? '';
-            config.description = document.getElementById('cfg-card-desc')?.value.trim() ?? '';
-            config.image_url   = document.getElementById('cfg-card-image')?.value.trim() ?? '';
+            config.cards = [...document.querySelectorAll('#sb-card-items .dyn-row')]
+                .map(row => ({
+                    title: row.querySelector('.card-title')?.value.trim() ?? '',
+                    description: row.querySelector('.card-desc')?.value.trim() ?? '',
+                    image_url: row.querySelector('.card-image')?.value.trim() ?? '',
+                })).filter(c => c.title || c.description);
             break;
         case 'list':
+            config.layout = document.getElementById('sb-list-layout')?.value ?? 'vertical';
             config.items = [...document.querySelectorAll('#sb-list-items .list-item-input')]
                 .map(i => i.value.trim()).filter(Boolean);
             break;
         case 'stats':
             config.stats = [...document.querySelectorAll('#sb-stats-items .dyn-row')]
                 .map(row => ({
+                    icon: row.querySelector('.stat-icon')?.value ?? '',
                     label: row.querySelector('.stat-label')?.value.trim() ?? '',
                     value: row.querySelector('.stat-value')?.value.trim() ?? '',
                 })).filter(s => s.label || s.value);
@@ -1104,20 +1167,19 @@ async function deleteBlock(id) {
 }
 
 // ─── Move up/down ─────────────────────────────────────────────
-function addListItemModal() {
-    const div = document.createElement('div'); div.className = 'dyn-row';
-    div.innerHTML = `<div class="drag-row-handle"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg></div>
-                     <input type="text" class="sb-input" placeholder="List item…">
-                     <button type="button" class="remove-row-btn" onclick="removeRow(this, 'add-list-items', 1)">✕</button>`;
-    document.getElementById('add-list-items').appendChild(div);
-}
-function addStatItemModal() {
-    const div = document.createElement('div'); div.className = 'dyn-row';
-    div.innerHTML = `<div class="drag-row-handle"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg></div>
-                     <input type="text" class="sb-input stat-label" placeholder="Label">
-                     <input type="text" class="sb-input stat-value" placeholder="Value">
-                     <button type="button" class="remove-row-btn" onclick="removeRow(this, 'add-stats-items', 1)">✕</button>`;
-    document.getElementById('add-stats-items').appendChild(div);
+function addCardItemModal() {
+    const cont = document.getElementById('add-card-items');
+    const div = document.createElement('div');
+    div.className = 'dyn-row items-start';
+    div.innerHTML = `<div class="drag-row-handle mt-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg></div>
+                     <div class="flex-1 space-y-2">
+                         <input type="text" class="sb-input card-title" placeholder="Card Title">
+                         <textarea class="sb-input card-desc" placeholder="Short description…"></textarea>
+                         <input type="url" class="sb-input card-image" placeholder="Image URL (optional)">
+                     </div>
+                     <button type="button" class="remove-row-btn mt-2" onclick="removeRow(this,'add-card-items',1)">✕</button>`;
+    cont.appendChild(div);
+    div.querySelector('input').focus();
 }
 function addHeaderNavItemModal() {
     const div = document.createElement('div'); div.className = 'dyn-row';
@@ -1147,6 +1209,7 @@ function openAddModal() {
     document.getElementById('add-modal-backdrop').classList.add('open');
     document.getElementById('add-title').focus();
     document.getElementById('add-error').classList.add('hidden');
+    switchAddModalType(document.getElementById('add-type').value);
 }
 function closeAddModal() {
     document.getElementById('add-modal-backdrop').classList.remove('open');
@@ -1154,6 +1217,11 @@ function closeAddModal() {
 function switchAddModalType(type) {
     document.querySelectorAll('.modal-cfg').forEach(el => el.classList.remove('visible'));
     document.getElementById(`modal-cfg-${type}`)?.classList.add('visible');
+    
+    const sizeField = document.getElementById('add-size-field');
+    if (sizeField) {
+        sizeField.style.display = (type === 'header') ? 'none' : 'block';
+    }
 }
 
 function addListItemModal() {
@@ -1171,11 +1239,18 @@ function addStatItemModal() {
     const div = document.createElement('div');
     div.className = 'dyn-row';
     div.innerHTML = `<div class="drag-row-handle"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg></div>
+                     <select class="sb-input stat-icon" style="flex:0.5; padding:8px 6px;">
+                         <option value="">No Icon</option>
+                         <option value="users">Users</option>
+                         <option value="chart">Chart</option>
+                         <option value="star">Star</option>
+                         <option value="clock">Clock</option>
+                     </select>
                      <input type="text" class="sb-input stat-label" placeholder="Label">
                      <input type="text" class="sb-input stat-value" placeholder="Value">
                      <button type="button" class="remove-row-btn" onclick="removeRow(this,'add-stats-items',1)">✕</button>`;
     cont.appendChild(div);
-    div.querySelector('input').focus();
+    div.querySelector('select').focus();
 }
 function removeRow(btn, containerId, minRows) {
     const cont = document.getElementById(containerId);
@@ -1205,14 +1280,18 @@ async function submitAddBlock() {
             errBox.classList.remove('hidden'); return;
         }
     } else if (type === 'card') {
-        config.title       = document.getElementById('add-card-title').value.trim();
-        config.description = document.getElementById('add-card-desc').value.trim();
-        config.image_url   = document.getElementById('add-card-image').value.trim();
-        if (!config.title || !config.description) {
-            errBox.textContent='Card title and description are required.';
+        config.cards = [...document.querySelectorAll('#add-card-items .dyn-row')]
+            .map(row => ({
+                title: row.querySelector('.card-title')?.value.trim() ?? '',
+                description: row.querySelector('.card-desc')?.value.trim() ?? '',
+                image_url: row.querySelector('.card-image')?.value.trim() ?? '',
+            })).filter(c => c.title || c.description);
+        if (!config.cards.length) {
+            errBox.textContent='At least one card is required.';
             errBox.classList.remove('hidden'); return;
         }
     } else if (type === 'list') {
+        config.layout = document.getElementById('add-list-layout')?.value ?? 'vertical';
         config.items = [...document.querySelectorAll('#add-list-items input')]
             .map(i => i.value.trim()).filter(Boolean);
         if (!config.items.length) {
@@ -1222,6 +1301,7 @@ async function submitAddBlock() {
     } else if (type === 'stats') {
         config.stats = [...document.querySelectorAll('#add-stats-items .dyn-row')]
             .map(row => ({
+                icon: row.querySelector('.stat-icon')?.value ?? '',
                 label: row.querySelector('.stat-label')?.value.trim() ?? '',
                 value: row.querySelector('.stat-value')?.value.trim() ?? '',
             })).filter(s => s.label || s.value);

@@ -1,8 +1,4 @@
-{{--
-    Header block partial
-    Variables: $title (string), $config (array)
-    Config keys: logo_text, logo_url, nav_links [{label,url}], cta_label, cta_url, bg_style (light|dark|gradient), size
---}}
+
 @php
     $bgStyle  = $config['bg_style'] ?? 'light';
     $logoText = $config['logo_text'] ?? $title;
@@ -25,21 +21,19 @@
         default            => 'bg-gradient-to-br from-slate-800 to-slate-900 bg-clip-text text-transparent',
     };
     $ctaCss = match($bgStyle) {
-        'dark'     => 'bg-white text-slate-900 hover:bg-slate-100 ring-1 ring-white/50 hover:ring-white shadow-[0_0_15px_rgba(255,255,255,0.3)]',
-        'gradient' => 'bg-white text-indigo-700 hover:bg-white/90 ring-1 ring-white/50 shadow-[0_0_15px_rgba(255,255,255,0.4)]',
-        default    => 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-500/30 ring-1 ring-indigo-500/50',
+        'dark'     => 'bg-white text-slate-900 hover:bg-slate-100 shadow-sm',
+        'gradient' => 'bg-white text-indigo-700 hover:bg-white/90 shadow-sm',
+        default    => 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm',
     };
     $dotCss = match($bgStyle) {
         'dark', 'gradient' => 'bg-white/10 ring-1 ring-white/20 backdrop-blur-md shadow-inner',
         default            => 'bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600 shadow-lg shadow-indigo-500/40 ring-1 ring-white/50',
     };
 @endphp
-<header class="relative z-50">
-    <div class="rounded-[2rem] overflow-hidden {{ $wrapCss }} transition-all duration-500 hover:shadow-2xl">
-        <div class="px-8 py-5 flex items-center justify-between gap-6 flex-wrap">
-
+<header class="relative z-50 w-full {{ $wrapCss }} transition-all duration-500 shadow-sm border-b border-slate-200/20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between gap-6 flex-wrap">
             {{-- Logo --}}
-            <div class="flex items-center gap-3.5 flex-shrink-0 group cursor-pointer">
+            <div class="flex items-center gap-4 flex-shrink-0 group cursor-pointer">
                 @if($logoUrl)
                     <img src="{{ $logoUrl }}" alt="{{ $logoText }}" class="h-9 w-auto object-contain transition-transform duration-500 group-hover:scale-105">
                 @else
@@ -50,7 +44,7 @@
                 <span class="font-extrabold text-xl {{ $logoCss }} tracking-tight transition-all duration-300">{{ $logoText }}</span>
             </div>
 
-            {{-- Nav links --}}
+            {{-- Nav links (desktop) --}}
             @if(!empty($navLinks))
                 <nav class="hidden md:flex items-center gap-8 flex-wrap">
                     @foreach($navLinks as $link)
@@ -66,13 +60,14 @@
             {{-- CTA button --}}
             @if($ctaLabel)
                 <a href="{{ $ctaUrl }}"
-                   class="flex-shrink-0 text-[15px] font-bold px-6 py-2.5 rounded-xl transition-all duration-300 {{ $ctaCss }} hover:-translate-y-1 active:translate-y-0 flex items-center gap-2">
+                   class="flex-shrink-0 text-sm font-bold px-6 py-3 rounded-xl transition-all duration-200 {{ $ctaCss }} hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2">
                     {{ $ctaLabel }}
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                     </svg>
                 </a>
             @endif
-        </div>
+
+          
     </div>
 </header>

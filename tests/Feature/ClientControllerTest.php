@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Site;
 use App\Models\UiBlock;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -75,5 +76,29 @@ class ClientControllerTest extends TestCase
         $response = $this->get(route('client.page', $site->slug));
 
         $response->assertStatus(200);
+    }
+
+    public function test_toggling_a_block_invalidates_the_cached_client_page()
+    {
+        $admin = User::factory()->create();
+        $site = Site::create(['name' => 'Cached Site', 'slug' => 'cached-site', 'owner_id' => $admin->id]);
+
+        $block = UiBlock::create([
+            'site_id'       => $site->id,
+            'title'         => 'Visible Banner',
+            'type'          => 'banner',
+            'is_active'     => true,
+            'display_order' => 0,
+            'config'        => ['image_url' => 'https://example.com/a.png', 'link' => 'https://example.com'],
+        ]);
+
+        // Warm the cache.
+        $this->get(route('client.page', $site->slug))->assertSee('Visible Banner');
+
+        $this->actingAs($admin)
+            ->patchJson(route('admin.sites.ui-blocks.toggle', [$site, $block]))
+            ->assertStatus(200);
+
+        $this->get(route('client.page', $site->slug))->assertDontSee('Visible Banner');
     }
 }

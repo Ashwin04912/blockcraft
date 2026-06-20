@@ -24,6 +24,7 @@ class UiBlockApiTest extends TestCase
             'name' => 'Test Site',
             'slug' => 'test-site',
             'description' => 'A site for testing',
+            'owner_id' => $this->admin->id,
         ]);
     }
 
@@ -150,6 +151,89 @@ class UiBlockApiTest extends TestCase
         $this->assertEquals(1, $block1->fresh()->display_order);
     }
 
+    public function test_reorder_rejects_block_ids_from_another_site()
+    {
+        $ownBlock = UiBlock::create([
+            'site_id' => $this->site->id,
+            'title' => 'Own Block',
+            'type' => 'banner',
+            'display_order' => 0,
+            'config' => [],
+        ]);
+
+        $otherSite = Site::create([
+            'name' => 'Other Site',
+            'slug' => 'other-site',
+            'description' => 'A different tenant',
+        ]);
+
+        $foreignBlock = UiBlock::create([
+            'site_id' => $otherSite->id,
+            'title' => 'Foreign Block',
+            'type' => 'banner',
+            'display_order' => 0,
+            'config' => [],
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->postJson(route('admin.sites.ui-blocks.reorder', $this->site), [
+                'order' => [$foreignBlock->id, $ownBlock->id],
+            ]);
+
+        $response->assertStatus(422);
+        $this->assertEquals(0, $foreignBlock->fresh()->display_order);
+    }
+
+    public function test_reorder_rejects_incomplete_order_payload()
+    {
+        UiBlock::create([
+            'site_id' => $this->site->id,
+            'title' => 'Block A',
+            'type' => 'banner',
+            'display_order' => 0,
+            'config' => [],
+        ]);
+
+        $block2 = UiBlock::create([
+            'site_id' => $this->site->id,
+            'title' => 'Block B',
+            'type' => 'banner',
+            'display_order' => 1,
+            'config' => [],
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->postJson(route('admin.sites.ui-blocks.reorder', $this->site), [
+                'order' => [$block2->id],
+            ]);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_cannot_manage_blocks_on_another_users_site()
+    {
+        $otherUser = User::factory()->create();
+        $otherSite = Site::create([
+            'name' => 'Other Owner Site',
+            'slug' => 'other-owner-site',
+            'owner_id' => $otherUser->id,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->postJson(route('admin.sites.ui-blocks.store', $otherSite), [
+                'title' => 'Intruder Block',
+                'type'  => 'banner',
+                'config' => ['image_url' => 'https://example.com/a.png', 'link' => 'https://example.com'],
+            ]);
+
+        $response->assertStatus(403);
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('admin.sites.ui-blocks.index', $otherSite));
+
+        $response->assertStatus(403);
+    }
+
     public function test_can_render_block_preview_html()
     {
         $block = UiBlock::create([
@@ -219,17 +303,17 @@ class UiBlockApiTest extends TestCase
         $response->assertJsonValidationErrors(['config.image_url', 'config.link']);
     }
 
-    public function test_card_block_requires_title_and_description()
+    public function test_card_block_requires_at_least_one_card_with_title_and_description()
     {
         $response = $this->actingAs($this->admin)
             ->postJson(route('admin.sites.ui-blocks.store', $this->site), [
                 'title' => 'My Card',
                 'type'  => 'card',
-                'config' => [],
+                'config' => ['cards' => [[]]],
             ]);
 
         $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['config.title', 'config.description']);
+        $response->assertJsonValidationErrors(['config.cards.0.title', 'config.cards.0.description']);
     }
 
     public function test_card_block_image_url_is_optional()
@@ -239,8 +323,9 @@ class UiBlockApiTest extends TestCase
                 'title' => 'My Card',
                 'type'  => 'card',
                 'config' => [
-                    'title'       => 'Card title',
-                    'description' => 'Card description',
+                    'cards' => [
+                        ['title' => 'Card title', 'description' => 'Card description'],
+                    ],
                 ],
             ]);
 
@@ -289,6 +374,105 @@ class UiBlockApiTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['config.size']);
+    }
+
+    public function test_rejects_unsupported_block_type()
+    {
+        $response = $this->actingAs($this->admin)
+            ->postJson(route('admin.sites.ui-blocks.store', $this->site), [
+                'title' => 'Sketchy',
+                'type'  => 'eval_html',
+                'config' => [],
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['type']);
+    }
+
+    public function test_can_create_cta_block()
+    {
+        $response = $this->actingAs($this->admin)
+            ->postJson(route('admin.sites.ui-blocks.store', $this->site), [
+                'title' => 'Sign Up CTA',
+                'type'  => 'cta',
+                'config' => [
+                    'heading'     => 'Ready to start?',
+                    'button_text' => 'Sign Up',
+                    'button_link' => 'https://example.com/signup',
+                ],
+            ]);
+
+        $response->assertStatus(200);
+        $this->assertDatabaseHas('ui_blocks', ['title' => 'Sign Up CTA', 'type' => 'cta']);
+    }
+
+    public function test_cta_block_requires_heading_and_button_fields()
+    {
+        $response = $this->actingAs($this->admin)
+            ->postJson(route('admin.sites.ui-blocks.store', $this->site), [
+                'title' => 'Bad CTA',
+                'type'  => 'cta',
+                'config' => [],
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['config.heading', 'config.button_text', 'config.button_link']);
+    }
+
+    public function test_accordion_block_requires_items_with_question_and_answer()
+    {
+        $response = $this->actingAs($this->admin)
+            ->postJson(route('admin.sites.ui-blocks.store', $this->site), [
+                'title' => 'FAQ',
+                'type'  => 'accordion',
+                'config' => ['items' => [['question' => 'Why?']]],
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['config.items.0.answer']);
+    }
+
+    public function test_rich_text_block_strips_script_tags_on_render()
+    {
+        $block = UiBlock::create([
+            'site_id' => $this->site->id,
+            'title' => 'About',
+            'type' => 'rich_text',
+            'is_active' => true,
+            'display_order' => 0,
+            'config' => [
+                'html' => '<p>Hello</p><script>alert(1)</script><a href="javascript:alert(2)">click</a>',
+            ],
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('admin.sites.ui-blocks.render', [$this->site, $block]));
+
+        $response->assertStatus(200);
+        $response->assertSee('Hello');
+        $response->assertDontSee('<script>', false);
+        $response->assertDontSee('javascript:', false);
+    }
+
+    public function test_unknown_but_valid_type_falls_back_to_placeholder()
+    {
+        $block = UiBlock::create([
+            'site_id' => $this->site->id,
+            'title' => 'Pricing Table',
+            'type' => 'table',
+            'is_active' => true,
+            'display_order' => 0,
+            'config' => [
+                'headers' => ['Plan', 'Price'],
+                'rows'    => [['Basic', '$9']],
+            ],
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('admin.sites.ui-blocks.render', [$this->site, $block]));
+
+        $response->assertStatus(200);
+        $response->assertSee('No template available for this block type yet.');
     }
 
     public function test_update_returns_404_when_block_belongs_to_different_site()

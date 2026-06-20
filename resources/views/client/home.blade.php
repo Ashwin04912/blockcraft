@@ -20,15 +20,12 @@
             <p class="text-slate-500 mt-2 font-medium">Activate some blocks in the admin panel to see them here.</p>
         </div>
     @else
-        <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-16 flex flex-col gap-12 lg:gap-16 items-center">
-            @foreach($blocks as $block)
-                <div class="w-full relative z-10 transition-all duration-500">
-                    @includeIf('client.blocks.' . $block->type, [
-                        'config' => $block->config ?? [],
-                        'title'  => $block->title,
-                    ])
-                </div>
-            @endforeach
+       <div class="w-full flex flex-col px-4 py-2 gap-4">
+    @foreach($blocks as $block)
+        <div class="w-full relative z-10 transition-all duration-500">
+            {{ app(\App\Services\BlockRenderer::class)->view($block) }}
         </div>
+    @endforeach
+</div>
     @endif
 @endsection

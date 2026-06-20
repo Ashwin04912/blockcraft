@@ -35,9 +35,9 @@ class UiBlock extends Model
         return $query->where('is_active', true);
     }
 
-    /** Scope: ordered by display_order ascending. */
+    /** Scope: ordered by display_order ascending, with id as a stable tiebreaker. */
     public function scopeOrdered(Builder $query): Builder
     {
-        return $query->orderBy('display_order');
+        return $query->orderBy('display_order')->orderBy('id');
     }
 }

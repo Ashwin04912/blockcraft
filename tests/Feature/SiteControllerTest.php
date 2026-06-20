@@ -26,6 +26,7 @@ class SiteControllerTest extends TestCase
         $site = Site::create([
             'name' => 'Test Site',
             'slug' => 'test-site',
+            'owner_id' => $this->admin->id,
         ]);
 
         UiBlock::create([
@@ -101,7 +102,7 @@ class SiteControllerTest extends TestCase
 
     public function test_can_delete_site_and_cascade_deletes_blocks()
     {
-        $site = Site::create(['name' => 'To Delete', 'slug' => 'to-delete']);
+        $site = Site::create(['name' => 'To Delete', 'slug' => 'to-delete', 'owner_id' => $this->admin->id]);
         $block = UiBlock::create([
             'site_id' => $site->id,
             'title'   => 'Child Block',
@@ -115,6 +116,30 @@ class SiteControllerTest extends TestCase
         $response->assertRedirect(route('admin.dashboard'));
         $this->assertDatabaseMissing('sites', ['id' => $site->id]);
         $this->assertDatabaseMissing('ui_blocks', ['id' => $block->id]);
+    }
+
+    public function test_dashboard_only_shows_own_sites()
+    {
+        $other = User::factory()->create();
+        Site::create(['name' => 'Mine', 'slug' => 'mine', 'owner_id' => $this->admin->id]);
+        Site::create(['name' => 'Not Mine', 'slug' => 'not-mine', 'owner_id' => $other->id]);
+
+        $response = $this->actingAs($this->admin)->get(route('admin.dashboard'));
+
+        $response->assertViewHas('sites', function ($sites) {
+            return $sites->count() === 1 && $sites->first()->slug === 'mine';
+        });
+    }
+
+    public function test_cannot_delete_another_users_site()
+    {
+        $other = User::factory()->create();
+        $site = Site::create(['name' => 'Not Mine', 'slug' => 'not-mine', 'owner_id' => $other->id]);
+
+        $response = $this->actingAs($this->admin)->delete(route('admin.sites.destroy', $site));
+
+        $response->assertStatus(403);
+        $this->assertDatabaseHas('sites', ['id' => $site->id]);
     }
 
     public function test_site_routes_are_protected_by_auth()

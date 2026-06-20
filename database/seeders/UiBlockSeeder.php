@@ -2,14 +2,27 @@
 
 namespace Database\Seeders;
 
+use App\Models\Site;
 use App\Models\UiBlock;
+use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class UiBlockSeeder extends Seeder
 {
     public function run(): void
     {
-        UiBlock::truncate();
+        $owner = User::firstOrCreate(
+            ['email' => 'admin@blockcraft.test'],
+            ['name' => 'BlockCraft Admin', 'password' => Hash::make('password')]
+        );
+
+        $site = Site::firstOrCreate(
+            ['slug' => 'demo'],
+            ['name' => 'Demo Site', 'description' => 'Standalone demo seeded by UiBlockSeeder.', 'owner_id' => $owner->id]
+        );
+
+        UiBlock::where('site_id', $site->id)->delete();
 
         $blocks = [
             // ── BANNERS ────────────────────────────────────────────────────
@@ -36,25 +49,43 @@ class UiBlockSeeder extends Seeder
 
             // ── CARDS ──────────────────────────────────────────────────────
             [
-                'title'         => 'Seamless Integrations',
+                'title'         => 'Why Teams Choose BlockCraft',
                 'type'          => 'card',
                 'is_active'     => true,
                 'display_order' => 2,
                 'config'        => [
-                    'title'       => 'Connect Everything',
-                    'description' => 'Integrate with your favourite tools in minutes. Our platform supports 200+ third-party services out of the box, from CRMs to analytics.',
-                    'image_url'   => 'https://images.unsplash.com/photo-1558655146-d09347e92766?w=800&h=400&fit=crop',
+                    'cards' => [
+                        [
+                            'title'       => 'Connect Everything',
+                            'description' => 'Integrate with your favourite tools in minutes — 200+ third-party services out of the box, from CRMs to analytics.',
+                            'image_url'   => 'https://images.unsplash.com/photo-1558655146-d09347e92766?w=800&h=400&fit=crop',
+                        ],
+                        [
+                            'title'       => 'Bank-grade Security',
+                            'description' => 'SOC 2 Type II certified, end-to-end encryption, and role-based access control keep your data safe at every layer.',
+                            'image_url'   => 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&h=400&fit=crop',
+                        ],
+                        [
+                            'title'       => 'Built for Scale',
+                            'description' => 'From a single landing page to hundreds of sites — the same block engine handles both without code changes.',
+                            'image_url'   => 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&h=400&fit=crop',
+                        ],
+                    ],
                 ],
             ],
+
+            // ── CTA ────────────────────────────────────────────────────────
             [
-                'title'         => 'Enterprise Security',
-                'type'          => 'card',
+                'title'         => 'Trial CTA',
+                'type'          => 'cta',
                 'is_active'     => true,
                 'display_order' => 3,
                 'config'        => [
-                    'title'       => 'Bank-grade Security',
-                    'description' => 'SOC 2 Type II certified, end-to-end encryption, and role-based access control keep your data safe at every layer.',
-                    'image_url'   => 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&h=400&fit=crop',
+                    'heading'     => 'Start building in minutes',
+                    'subheading'  => 'No credit card required. Cancel anytime.',
+                    'button_text' => 'Start Free Trial',
+                    'button_link' => 'https://example.com/signup',
+                    'style'       => 'primary',
                 ],
             ],
 
@@ -98,10 +129,10 @@ class UiBlockSeeder extends Seeder
                 'display_order' => 6,
                 'config'        => [
                     'stats' => [
-                        ['label' => 'Active Users',     'value' => '124K'],
-                        ['label' => 'Blocks Served',    'value' => '3.2M'],
-                        ['label' => 'Uptime',           'value' => '99.9%'],
-                        ['label' => 'Integrations',     'value' => '200+'],
+                        ['label' => 'Active Users',     'value' => '124K', 'icon' => 'users'],
+                        ['label' => 'Blocks Served',    'value' => '3.2M', 'icon' => 'chart'],
+                        ['label' => 'Uptime',           'value' => '99.9%', 'icon' => 'clock'],
+                        ['label' => 'Integrations',     'value' => '200+', 'icon' => 'star'],
                     ],
                 ],
             ],
@@ -119,12 +150,32 @@ class UiBlockSeeder extends Seeder
                     ],
                 ],
             ],
+
+            // ── ACCORDION ──────────────────────────────────────────────────
+            [
+                'title'         => 'Common Questions',
+                'type'          => 'accordion',
+                'is_active'     => true,
+                'display_order' => 8,
+                'config'        => [
+                    'items' => [
+                        ['question' => 'How do I add a new block type?', 'answer' => 'Create a Blade partial under resources/views/client/blocks/, then add it to the supportedTypes() list.'],
+                        ['question' => 'Does reordering require a page reload?', 'answer' => 'No — drag-and-drop reorder saves instantly via AJAX in the visual editor.'],
+                    ],
+                ],
+            ],
         ];
 
         foreach ($blocks as $block) {
+            $block['site_id'] = $site->id;
             UiBlock::create($block);
         }
 
-        $this->command->info('Seeded ' . count($blocks) . ' UI blocks (7 active, 1 inactive as demo).');
+        $activeCount = count(array_filter($blocks, fn ($b) => $b['is_active'] ?? true));
+
+        $this->command->info(
+            'Seeded ' . count($blocks) . ' UI blocks (' . $activeCount . ' active, '
+            . (count($blocks) - $activeCount) . ' inactive as demo) for site "' . $site->slug . '".'
+        );
     }
 }

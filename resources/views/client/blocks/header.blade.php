@@ -1,73 +1,93 @@
-
 @php
-    $bgStyle  = $config['bg_style'] ?? 'light';
-    $logoText = $config['logo_text'] ?? $title;
-    $logoUrl  = $config['logo_url'] ?? '';
-    $navLinks = $config['nav_links'] ?? [];
-    $ctaLabel = $config['cta_label'] ?? '';
-    $ctaUrl   = $config['cta_url'] ?? '#';
+$bgStyle  = $config['bg_style'] ?? 'light';
+$logoText = $config['logo_text'] ?? $title;
+$logoUrl  = $config['logo_url'] ?? '';
+$navLinks = $config['nav_links'] ?? [];
+$ctaLabel = $config['cta_label'] ?? '';
+$ctaUrl   = $config['cta_url'] ?? '#';
 
-    $wrapCss = match($bgStyle) {
-        'dark'     => 'bg-slate-950/80 backdrop-blur-2xl ring-1 ring-white/10 shadow-2xl shadow-slate-950/40',
-        'gradient' => 'bg-gradient-to-r from-violet-600/90 via-indigo-600/90 to-blue-600/90 backdrop-blur-2xl ring-1 ring-white/20 shadow-2xl shadow-indigo-900/30',
-        default    => 'bg-white/70 backdrop-blur-2xl ring-1 ring-slate-900/5 shadow-xl shadow-slate-200/50',
-    };
-    $linkCss = match($bgStyle) {
-        'dark', 'gradient' => 'text-white/70 hover:text-white',
-        default            => 'text-slate-500 hover:text-slate-900',
-    };
-    $logoCss = match($bgStyle) {
-        'dark', 'gradient' => 'text-white',
-        default            => 'bg-gradient-to-br from-slate-800 to-slate-900 bg-clip-text text-transparent',
-    };
-    $ctaCss = match($bgStyle) {
-        'dark'     => 'bg-white text-slate-900 hover:bg-slate-100 shadow-sm',
-        'gradient' => 'bg-white text-indigo-700 hover:bg-white/90 shadow-sm',
-        default    => 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm',
-    };
-    $dotCss = match($bgStyle) {
-        'dark', 'gradient' => 'bg-white/10 ring-1 ring-white/20 backdrop-blur-md shadow-inner',
-        default            => 'bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600 shadow-lg shadow-indigo-500/40 ring-1 ring-white/50',
-    };
+
+// Map styles to Bootstrap classes
+$navbarClass = match($bgStyle) {
+    'dark'     => 'navbar-dark bg-dark',
+    'gradient' => 'navbar-dark bg-primary',
+    default    => 'navbar-light bg-light',
+};
+
+$btnClass = match($bgStyle) {
+    'dark'     => 'btn btn-light',
+    'gradient' => 'btn btn-light text-primary',
+    default    => 'btn btn-primary',
+};
+
+
 @endphp
-<header class="relative z-50 w-full {{ $wrapCss }} transition-all duration-500 shadow-sm border-b border-slate-200/20">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between gap-6 flex-wrap">
-            {{-- Logo --}}
-            <div class="flex items-center gap-4 flex-shrink-0 group cursor-pointer">
-                @if($logoUrl)
-                    <img src="{{ $logoUrl }}" alt="{{ $logoText }}" class="h-9 w-auto object-contain transition-transform duration-500 group-hover:scale-105">
-                @else
-                    <div class="w-10 h-10 rounded-xl {{ $dotCss }} flex items-center justify-center flex-shrink-0 transition-transform duration-500 group-hover:rotate-6 group-hover:scale-110">
-                        <span class="text-white font-black text-sm leading-none drop-shadow-md">{{ strtoupper(mb_substr($logoText, 0, 1)) }}</span>
-                    </div>
-                @endif
-                <span class="font-extrabold text-xl {{ $logoCss }} tracking-tight transition-all duration-300">{{ $logoText }}</span>
-            </div>
 
-            {{-- Nav links (desktop) --}}
-            @if(!empty($navLinks))
-                <nav class="hidden md:flex items-center gap-8 flex-wrap">
-                    @foreach($navLinks as $link)
-                        <a href="{{ $link['url'] ?? '#' }}"
-                           class="relative text-[15px] font-semibold {{ $linkCss }} transition-colors duration-300 group">
+<nav id="site-header" class="navbar navbar-expand-lg {{ $navbarClass }} sticky-top shadow-sm">
+    <div class="container">
+
+
+    {{-- Logo --}}
+    <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url('/') }}">
+        @if($logoUrl)
+            <img src="{{ $logoUrl }}" alt="{{ $logoText }}" height="40">
+        @endif
+        @if($logoText)
+            <span class="fw-bold">{{ $logoText }}</span>
+        @endif
+    </a>
+
+    {{-- Mobile Toggle --}}
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    {{-- Nav Links --}}
+    <div class="collapse navbar-collapse" id="navbarContent">
+        @if(!empty($navLinks))
+            <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+                @foreach($navLinks as $link)
+                    @php
+                        $url = $link['url'] ?? '#';
+                        $active = $url !== '#' && request()->is(trim($url, '/') ?: '/');
+                    @endphp
+                    <li class="nav-item">
+                        <a class="nav-link {{ $active ? 'active fw-semibold' : '' }}"
+                           href="{{ $url }}">
                             {{ $link['label'] ?? '' }}
-                            <span class="absolute -bottom-1.5 left-0 w-0 h-0.5 bg-current transition-all duration-300 group-hover:w-full rounded-full opacity-50"></span>
                         </a>
-                    @endforeach
-                </nav>
-            @endif
+                    </li>
+                @endforeach
+            </ul>
+        @endif
 
-            {{-- CTA button --}}
-            @if($ctaLabel)
-                <a href="{{ $ctaUrl }}"
-                   class="flex-shrink-0 text-sm font-bold px-6 py-3 rounded-xl transition-all duration-200 {{ $ctaCss }} hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2">
+        {{-- CTA --}}
+        @if($ctaLabel)
+            <div class="d-flex">
+                <a href="{{ $ctaUrl }}" class="{{ $btnClass }}">
                     {{ $ctaLabel }}
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
                 </a>
-            @endif
-
-          
+            </div>
+        @endif
     </div>
-</header>
+</div>
+
+
+</nav>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const header = document.getElementById('site-header');
+
+    const onScroll = () => {
+        if (window.scrollY > 10) {
+            header.classList.add('shadow');
+        } else {
+            header.classList.remove('shadow');
+        }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+});
+</script>

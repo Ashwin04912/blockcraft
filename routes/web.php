@@ -50,6 +50,10 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
         Route::get('visual-editor', [UiBlockController::class, 'visualEditor'])
             ->name('visual-editor');
 
+        // Page background color
+        Route::patch('background', [SiteController::class, 'updateBackground'])
+            ->name('background.update');
+
         // AJAX helpers (must be before resource to avoid {uiBlock} matching "reorder")
         Route::post('ui-blocks/reorder', [UiBlockController::class, 'reorder'])
             ->name('ui-blocks.reorder');

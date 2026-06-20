@@ -9,10 +9,10 @@ class StoreUiBlockRequest extends FormRequest
 {
     use HasUiBlockConfigRules;
 
-    // public function authorize(): bool
-    // {
-    //     return true;
-    // }
+    public function authorize(): bool
+    {
+        return true;
+    }
 
     public function rules(): array
     {
@@ -24,6 +24,7 @@ class StoreUiBlockRequest extends FormRequest
             'is_active'     => ['sometimes', 'boolean'],
             'display_order' => ['sometimes', 'integer', 'min:0'],
             'config.size'   => ['sometimes', 'nullable', 'in:sm,md,lg'],
+            'config.bg_style' => ['sometimes', 'nullable', 'string', 'in:light,dark,gradient'],
         ];
 
         return array_merge($rules, $this->configRules($type));

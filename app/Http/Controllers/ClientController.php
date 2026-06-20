@@ -14,6 +14,6 @@ class ClientController extends Controller
             fn () => $site->uiBlocks()->active()->ordered()->get()
         );
 
-        return view('client.home', compact('blocks'));
+        return view('client.home', compact('blocks', 'site'));
     }
 }

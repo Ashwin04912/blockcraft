@@ -7,6 +7,7 @@ use App\Models\Site;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class SiteController extends Controller
 {
@@ -41,6 +42,29 @@ class SiteController extends Controller
 
         return redirect()->route('admin.sites.visual-editor', $site)
             ->with('success', "Site \"{$site->name}\" created — start adding blocks!");
+    }
+
+    /**
+     * Update the page background color (client.page body bg).
+     */
+    public function updateBackground(Request $request, Site $site)
+    {
+        $this->authorize('update', $site);
+
+        $validated = $request->validate([
+            'background_color' => [
+                'required', 'string',
+                Rule::in(array_column(Site::backgroundPalette(), 'value')),
+            ],
+        ]);
+
+        $site->update($validated);
+
+        if ($request->wantsJson()) {
+            return response()->json(['background_color' => $site->background_color]);
+        }
+
+        return back()->with('success', 'Background updated.');
     }
 
     /**

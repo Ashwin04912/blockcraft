@@ -1,40 +1,85 @@
 {{--
     List block partial
     Variables: $title (string), $config (array)
-    Config keys: items (array of strings), size (sm|md|lg), layout (vertical|horizontal)
+    Config keys: items (array of strings), size (sm|md|lg), layout (vertical|horizontal), bg_style (light|dark|gradient)
 --}}
 @php
     $items   = $config['items'] ?? [];
     $size    = $config['size'] ?? 'md';
     $layout  = $config['layout'] ?? 'vertical';
-    $padding = ['sm' => 'px-4 py-3', 'md' => 'px-6 py-4', 'lg' => 'px-8 py-4'][$size] ?? 'px-6 py-4';
-    $badgeW  = ['sm' => 'w-8 h-8 text-sm', 'md' => 'w-10 h-10 text-base', 'lg' => 'w-10 h-10 text-base'][$size] ?? 'w-10 h-10 text-base';
+    $padding = ['sm' => 'px-3 py-2', 'md' => 'px-4 py-3', 'lg' => 'px-5 py-3'][$size] ?? 'px-4 py-3';
+    $badgeW  = ['sm' => 'badge-w-sm', 'md' => 'badge-w-md', 'lg' => 'badge-w-md'][$size] ?? 'badge-w-md';
 
-    $wrapperClass = $layout === 'horizontal'
-        ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-        : 'flex flex-col gap-4';
+    $bgStyle = $config['bg_style'] ?? 'light';
+
+    $panelClass = match($bgStyle) {
+        'dark'     => 'bg-dark',
+        'gradient' => 'bg-primary bg-gradient',
+        default    => '',
+    };
+    $headingClass = $bgStyle === 'light' ? 'text-dark' : 'text-white';
+    $itemClass    = $bgStyle === 'light' ? '' : 'text-bg-dark';
+    $itemTextClass = $bgStyle === 'light' ? 'text-secondary' : 'text-white-50';
+    $badgeClass   = $bgStyle === 'light' ? 'bg-warning bg-opacity-10 text-dark' : 'bg-white bg-opacity-10 text-white';
 @endphp
-<section class="w-full">
-    <div class="flex items-center gap-4 mb-6">
-        <span class="inline-block w-2 h-6 bg-amber-500 rounded-full"></span>
-        <h2 class="text-xl font-bold text-slate-900 tracking-tight">{{ $title }}</h2>
-        <span class="text-[10px] font-bold uppercase tracking-widest text-amber-700 bg-amber-50 px-3 py-1 rounded-full ml-auto ring-1 ring-amber-500/10">List</span>
+<section class="w-100 {{ $panelClass }} {{ $panelClass ? 'rounded-4 p-4' : '' }}">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <span class="d-inline-block rounded-pill bg-warning" style="width: 8px; height: 24px;"></span>
+        <h2 class="fs-4 fw-bold {{ $headingClass }} m-0 tracking-tight">{{ $title }}</h2>
+
     </div>
 
-    <div class="{{ $wrapperClass }}">
+    @if($layout === 'horizontal')
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+    @else
+        <div class="d-flex flex-column gap-3">
+    @endif
+
         @forelse($items as $i => $item)
-            <div class="group flex items-center gap-4 {{ $padding }} bg-white rounded-2xl shadow-sm ring-1 ring-slate-900/5 hover:shadow-lg hover:shadow-slate-900/10 hover:-translate-y-0.5 transition-all duration-200">
-                <span class="flex-shrink-0 {{ $badgeW }} rounded-xl bg-amber-50 text-amber-700 font-bold flex items-center justify-center group-hover:bg-amber-500 group-hover:text-white transition-colors duration-200">
-                    {{ $i + 1 }}
-                </span>
-                <span class="text-slate-600 {{ $size === 'lg' ? 'text-base' : 'text-sm' }} font-medium group-hover:text-slate-900 transition-colors duration-200">
-                    {{ $item }}
-                </span>
+            @if($layout === 'horizontal') <div class="col"> @endif
+            <div class="card border-0 shadow-sm rounded-4 transition group-hover-translate-y h-100 {{ $padding }} group {{ $itemClass }}">
+                <div class="d-flex align-items-center gap-3 m-0">
+                    <span class="d-flex align-items-center justify-content-center flex-shrink-0 {{ $badgeW }} rounded-3 {{ $badgeClass }} fw-bold transition group-hover-bg-warning">
+                        {{ $i + 1 }}
+                    </span>
+                    <span class="{{ $itemTextClass }} {{ $size === 'lg' ? 'fs-6' : 'small' }} fw-medium transition group-hover m-0">
+                        {{ $item }}
+                    </span>
+                </div>
             </div>
+            @if($layout === 'horizontal') </div> @endif
         @empty
-            <div class="px-6 py-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                <span class="text-slate-400 text-sm font-medium">No items configured.</span>
+            @if($layout === 'horizontal') <div class="col-12"> @endif
+            <div class="px-4 py-5 text-center bg-light rounded-4 border border-secondary border-dashed border-opacity-25">
+                <span class="text-secondary small fw-medium">No items configured.</span>
             </div>
+            @if($layout === 'horizontal') </div> @endif
         @endforelse
+
     </div>
 </section>
+
+<style>
+    .badge-w-sm { width: 2rem; height: 2rem; font-size: 0.875rem; }
+    .badge-w-md { width: 2.5rem; height: 2.5rem; font-size: 1rem; }
+
+    .group-hover-translate-y {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .group-hover-translate-y:hover {
+        transform: translateY(-2px);
+        box-shadow: '{{ $bgStyle === 'light' ? '0 0.5rem 1rem rgba(0, 0, 0, 0.1)' : '0 0.5rem 1rem rgba(239, 236, 236, 0.95)' }}';
+    }
+
+    .transition { transition: all 0.2s ease; }
+
+    .group:hover .group-hover-bg-warning {
+        background-color: var(--bs-warning) !important;
+        color: #000 !important;
+    }
+
+    .group:hover .group-hover-text-dark {
+        color: var(--bs-dark) !important;
+    }
+</style>

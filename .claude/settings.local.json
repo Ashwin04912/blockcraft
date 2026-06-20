@@ -8,7 +8,9 @@
       "Bash(kill %1)",
       "Bash(jobs -p)",
       "Bash(xargs -r kill)",
-      "Bash(php -l resources/views/client/blocks/header.blade.php)"
+      "Bash(php -l resources/views/client/blocks/header.blade.php)",
+      "Bash(grep -n 'background-color: {{ $site' resources/views/client/home.blade.php)",
+      "Bash(curl -s -o /dev/null -w \"%{url_effective}\\\\n\" http://127.0.0.1:8141/admin/sites/4/visual-editor)"
     ]
   }
 }

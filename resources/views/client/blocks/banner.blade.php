@@ -26,8 +26,6 @@
             </span>
         </div>
 
-        <div class="absolute top-4 right-4 z-20">
-            <span class="bg-white/15 text-white text-xs font-bold px-3 py-1 rounded-full backdrop-blur-md ring-1 ring-white/20 uppercase tracking-wider">Featured</span>
-        </div>
+       
     </a>
 </section>

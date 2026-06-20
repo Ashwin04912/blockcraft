@@ -10,10 +10,10 @@
 <!-- <section class="group w-full flex flex-col rounded-2xl ring-1 ring-slate-900/5 bg-white/40 shadow-sm overflow-hidden h-[34rem]"> -->
 
     {{-- Fixed header row --}}
-    <div class="flex-shrink-0 flex items-center gap-4 px-6 py-4 border-b border-slate-900/5 bg-white/70 backdrop-blur-xl">
+    <div class="flex-shrink-0 flex items-center gap-4 ">
         <span class="inline-block w-2 h-6 bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 rounded-full shadow-sm shadow-purple-500/50"></span>
         <h2 class="text-xl font-black text-slate-900 tracking-tight">{{ $title }}</h2>
-        <span class="text-[10px] font-bold uppercase tracking-widest text-indigo-600 bg-indigo-50/80 px-3 py-1 rounded-full ml-auto ring-1 ring-indigo-500/10 shadow-sm">Card</span>
+       
     </div>
 
     {{-- Scrollable grid body — only this scrolls, the page does not --}}

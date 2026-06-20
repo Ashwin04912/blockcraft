@@ -13,7 +13,7 @@
     <div class="flex items-center gap-4 mb-6">
         <span class="inline-block w-2 h-6 bg-emerald-500 rounded-full"></span>
         <h2 class="text-xl font-bold text-slate-900 tracking-tight">{{ $title }}</h2>
-        <span class="text-[10px] font-bold uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full ml-auto ring-1 ring-emerald-500/10">Stats</span>
+        
     </div>
 
     <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -22,7 +22,7 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        $this->call(SiteSeeder::class);
+        $this->call(PortfolioSeeder::class);
 
         $this->command->info('');
         $this->command->info('Admin credentials:');

@@ -16,4 +16,6 @@ class ClientController extends Controller
 
         return view('client.home', compact('blocks', 'site'));
     }
+
+
 }
